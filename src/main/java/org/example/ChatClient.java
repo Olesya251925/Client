@@ -2,17 +2,38 @@ package org.example;
 
 import java.io.*;
 import java.net.*;
+import java.util.Properties;
 import java.util.concurrent.*;
 
 public class ChatClient {
-    private static final String SERVER_HOST = "localhost";
-    private static final int SERVER_PORT = 12345;
+    private static String SERVER_HOST;
+    private static int SERVER_PORT;
     private static BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
     private static PrintWriter out;
     private static BufferedReader in;
     private static String nickname;
     private static BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>();
     private static boolean userListReceived = false;  // флаг для предотвращения дублирования
+
+    static {
+        // Загружаем параметры из файла config.properties
+        try (InputStream input = ChatClient.class.getClassLoader().getResourceAsStream("client.properties")) {
+            if (input == null) {
+                System.out.println("Не удалось найти файл client.properties");
+
+
+            } else {
+                Properties prop = new Properties();
+                prop.load(input);
+
+                SERVER_HOST = prop.getProperty("server.host", "localhost"); // По умолчанию localhost
+                SERVER_PORT = Integer.parseInt(prop.getProperty("server.port", "12345")); // По умолчанию 12345
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+
+        }
+    }
 
     public static void main(String[] args) {
         try {
