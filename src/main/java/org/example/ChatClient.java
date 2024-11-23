@@ -14,30 +14,44 @@ public class ChatClient {
     private static BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>();
     private static boolean userListReceived = false;  // флаг для предотвращения дублирования
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-        Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
-        out = new PrintWriter(socket.getOutputStream(), true);
-        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    public static void main(String[] args) {
+        try {
+            Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
+            out = new PrintWriter(socket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-        // Вводим никнейм и отправляем его на сервер
-        System.out.print("Введите ваш никнейм: ");
-        nickname = consoleReader.readLine();
-        out.println(nickname);
+            // Вводим никнейм и отправляем его на сервер
+            System.out.print("Введите ваш никнейм: ");
+            nickname = consoleReader.readLine();
+            out.println(nickname);
 
-        System.out.println("Вы подключились к сети!");
+            System.out.println("Вы подключились к сети!");
 
-        // Создаем поток для получения сообщений от сервера
-        new Thread(ChatClient::receiveMessages).start();
+            // Создаем поток для получения сообщений от сервера
+            new Thread(ChatClient::receiveMessages).start();
 
-        // Ждем системное сообщение о подключении нового пользователя
-        String initialMessage = messageQueue.take();
-        System.out.println(initialMessage);
+            // Ждем системное сообщение о подключении нового пользователя
+            String initialMessage = messageQueue.take();  // Блокирует выполнение до получения сообщения
+            System.out.println(initialMessage);
 
-        // Автоматически выводим список пользователей сразу после подключения
-        getUserList();
+            // Получаем и показываем список пользователей сразу после подключения
+            getUserList();
+            processQueuedMessages(); // Обрабатываем полученные сообщения (список пользователей)
 
-        while (true) {
+            // Далее показываем меню для выбора действия
             displayMenu();
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();  // Обрабатываем исключения
+        }
+    }
+
+    private static void displayMenu() throws IOException {
+        while (true) {
+            System.out.println("\nВыберите действие:");
+            System.out.println("    1. Личное сообщение");
+            System.out.println("    2. Сообщение для всех");
+            System.out.print("Ваш выбор: ");
             String choice = consoleReader.readLine();
 
             switch (choice) {
@@ -52,18 +66,26 @@ public class ChatClient {
             }
 
             // Обрабатываем любые полученные сообщения во время ввода
-            processQueuedMessages();
+            try {
+                processQueuedMessages();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();  // Восстанавливаем флаг прерывания
+                e.printStackTrace();
+            }
         }
     }
 
-    private static void displayMenu() {
-        System.out.println("\nВыберите действие:");
-        System.out.println("    1. Личное сообщение");
-        System.out.println("    2. Сообщение для всех");
-        System.out.print("Ваш выбор: ");
-    }
-
     private static void sendPrivateMessage() throws IOException {
+        // Сначала выводим список пользователей
+        getUserList();
+        try {
+            processQueuedMessages();  // Обрабатываем полученные сообщения (список пользователей)
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();  // Восстанавливаем флаг прерывания
+            e.printStackTrace();
+        }
+
+        // Затем даем выбрать получателя
         System.out.print("Введите никнейм получателя: ");
         String recipient = consoleReader.readLine();
         System.out.print("Введите сообщение: ");
@@ -86,9 +108,15 @@ public class ChatClient {
         try {
             String message;
             while ((message = in.readLine()) != null) {
-                messageQueue.put(message);
+                try {
+                    messageQueue.put(message);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();  // Восстанавливаем флаг прерывания
+                    e.printStackTrace();
+                    return;
+                }
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
