@@ -174,7 +174,12 @@ public class ChatClient {
         String[] users = userListString.split(",");
         System.out.println("\nПодключенные пользователи:");
         for (String user : users) {
-            System.out.println("    - " + user);
+            if (user.equals(nickname)) {
+                System.out.println("    - " + user + " (вы)");
+            } else {
+                System.out.println("    - " + user);
+            }
         }
     }
+
 }
