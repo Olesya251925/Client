@@ -165,7 +165,7 @@ public class ChatClient {
                     System.out.println("\nСистемное сообщение: " + parts[1]);
                     break;
                 default:
-                    System.out.println("\nПолучено неизвестное сообщение: " + message);
+                    System.out.println("\nПофлучено неизвестное сообщение: " + message);
             }
         }
     }
@@ -174,12 +174,8 @@ public class ChatClient {
         String[] users = userListString.split(",");
         System.out.println("\nПодключенные пользователи:");
         for (String user : users) {
-            if (user.equals(nickname)) {
-                System.out.println("    - " + user + " (вы)");
-            } else {
-                System.out.println("    - " + user);
-            }
+            System.out.println("    - " + user);
         }
     }
-
 }
+
