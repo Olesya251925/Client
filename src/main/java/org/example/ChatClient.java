@@ -52,18 +52,14 @@ public class ChatClient {
             new Thread(ChatClient::receiveMessages).start();
 
             // Ждем системное сообщение о подключении нового пользователя
-            String initialMessage = messageQueue.take();  // Блокирует выполнение до получения сообщения
+            String initialMessage = messageQueue.take();
             System.out.println(initialMessage);
 
-            // Получаем и показываем список пользователей сразу после подключения
-            getUserList();
-            processQueuedMessages(); // Обрабатываем полученные сообщения (список пользователей)
-
-            // Далее показываем меню для выбора действия
+            // Теперь сразу показываем меню
             displayMenu();
 
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();  // Обрабатываем исключения
+            e.printStackTrace();
         }
     }
 
@@ -75,49 +71,55 @@ public class ChatClient {
             System.out.print("Ваш выбор: ");
             String choice = consoleReader.readLine();
 
-            switch (choice) {
-                case "1":
-                    sendPrivateMessage();
-                    break;
-                case "2":
-                    sendBroadcastMessage();
-                    break;
-                default:
-                    System.out.println("Неверный выбор. Попробуйте снова.");
-            }
-
-            // Обрабатываем любые полученные сообщения во время ввода
             try {
-                processQueuedMessages();
+                switch (choice) {
+                    case "1":
+                        // Очищаем предыдущий список пользователей
+                        userListReceived = false;
+                        // Запрашиваем новый список
+                        getUserList();
+                        // Ждем немного, чтобы получить ответ от сервера
+                        Thread.sleep(100);
+                        // Обрабатываем ответ только один раз
+                        processQueuedMessages();
+                        sendPrivateMessage();
+                        break;
+                    case "2":
+                        sendBroadcastMessage();
+                        break;
+                    default:
+                        System.out.println("Неверный выбор. Попробуйте снова.");
+                }
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();  // Восстанавливаем флаг прерывания
+                Thread.currentThread().interrupt();
                 e.printStackTrace();
             }
         }
     }
 
-    private static void sendPrivateMessage() throws IOException {
-        // Сначала выводим список пользователей
-        getUserList();
-        try {
-            processQueuedMessages();  // Обрабатываем полученные сообщения (список пользователей)
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();  // Восстанавливаем флаг прерывания
-            e.printStackTrace();
-        }
+        private static void sendPrivateMessage() throws IOException {
+            System.out.print("Введите никнейм получателя: ");
+            String recipient = consoleReader.readLine();
+            System.out.print("Введите сообщение: ");
+            String message = consoleReader.readLine();
+            out.println("PRIVATE:" + recipient + ":" + message);
 
-        // Затем даем выбрать получателя
-        System.out.print("Введите никнейм получателя: ");
-        String recipient = consoleReader.readLine();
-        System.out.print("Введите сообщение: ");
-        String message = consoleReader.readLine();
-        out.println("PRIVATE:" + recipient + ":" + message);
-    }
+            // Добавляем логирование отправки личного сообщения
+            System.out.println("\nОтправлено личное сообщение:");
+            System.out.println("От: " + nickname + " (вы)");
+            System.out.println("Кому: " + recipient);
+            System.out.println("Сообщение: " + message);
+        }
 
     private static void sendBroadcastMessage() throws IOException {
         System.out.print("Введите сообщение для всех: ");
         String message = consoleReader.readLine();
         out.println("BROADCAST:" + message);
+
+        // Добавляем логирование отправки общего сообщения
+        System.out.println("\nОтправлено сообщение всем:");
+        System.out.println("От: " + nickname + " (вы)");
+        System.out.println("Сообщение: " + message);
     }
 
     // Этот метод будет сразу вызван после подключения
@@ -150,22 +152,31 @@ public class ChatClient {
 
             switch (messageType) {
                 case "USERS":
-                    if (!userListReceived) {  // Если список пользователей еще не был выведен
+                    // Показываем список пользователей только один раз
+                    if (!userListReceived && parts.length > 1) {
                         displayUserList(parts[1]);
-                        userListReceived = true;  // Устанавливаем флаг, чтобы не выводить список снова
+                        userListReceived = true;
                     }
                     break;
                 case "PRIVATE":
-                    System.out.println("\nЛичное сообщение от " + parts[1] + ": " + parts[2]);
+                    String sender = parts[1];
+                    String displaySender = sender.equals(nickname) ? sender + " (вы)" : sender;
+                    System.out.println("\nЛичное сообщение:");
+                    System.out.println("От: " + displaySender);
+                    System.out.println("Сообщение: " + parts[2]);
                     break;
                 case "BROADCAST":
-                    System.out.println("\nСообщение всем от " + parts[1] + ": " + parts[2]);
+                    sender = parts[1];
+                    displaySender = sender.equals(nickname) ? sender + " (вы)" : sender;
+                    System.out.println("\nСообщение всем:");
+                    System.out.println("От: " + displaySender);
+                    System.out.println("Сообщение: " + parts[2]);
                     break;
                 case "SYSTEM":
                     System.out.println("\nСистемное сообщение: " + parts[1]);
                     break;
                 default:
-                    System.out.println("\nПофлучено неизвестное сообщение: " + message);
+                    System.out.println("\nПолучено неизвестное сообщение: " + message);
             }
         }
     }
@@ -174,7 +185,9 @@ public class ChatClient {
         String[] users = userListString.split(",");
         System.out.println("\nПодключенные пользователи:");
         for (String user : users) {
-            System.out.println("    - " + user);
+            // Добавляем "(вы)" к имени текущего пользователя
+            String displayName = user.equals(nickname) ? user + " (вы)" : user;
+            System.out.println("    - " + displayName);
         }
     }
 }
