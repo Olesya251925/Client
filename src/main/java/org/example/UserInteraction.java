@@ -69,7 +69,6 @@ public class UserInteraction {
         }
     }
 
-
     private void sendPrivateMessage() throws IOException {
         // Запрашиваем список пользователей перед отправкой личного сообщения
         networkHandler.requestUserList();
