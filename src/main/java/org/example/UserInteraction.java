@@ -84,17 +84,6 @@ public class UserInteraction {
         logSentMessage("личное сообщение", recipient, message);
     }
 
-    private String processUserList() throws IOException {
-        String userListMessage = null;
-        // Проверяем очередь сообщений на наличие списка пользователей
-        while (!networkHandler.getMessageQueue().isEmpty()) {
-            String newMessage = networkHandler.getMessageQueue().poll();
-            if (newMessage.startsWith("USERS:")) {
-                userListMessage = newMessage.substring(6);
-            }
-        }
-        return userListMessage;
-    }
     private void sendBroadcastMessage() throws IOException {
         System.out.print("Введите сообщение для всех: ");
         String message = consoleReader.readLine();
