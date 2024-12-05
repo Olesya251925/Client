@@ -52,7 +52,7 @@ public class NetworkHandler {
                 String message;
                 while ((message = in.readLine()) != null) {
                     if (message.startsWith("USERS:")) {
-                        messageQueue.add(message);
+                        messageQueue.add(message); // Добавляем сообщения с списком пользователей
                     } else {
                         messageQueue.add(message); // Добавляем другие типы сообщений
                     }
